@@ -1,1 +1,1 @@
-# sulingbox03.github.io
+# Minimalism: Green Life Challenge
