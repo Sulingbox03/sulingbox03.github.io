@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minimalism: Green Life Challenge</title>
+    <style>
+        :root {
+            --bg-color: #f0f4f8;
+            --home-bg: #ffe4e1;
+            --discard-bg: #e0eee0;
+            --primary-btn: #4a90e2;
+            --text-color: #333;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        h1, h2 { text-align: center; }
+
+        .screen {
+            display: none;
+            width: 90%;
+            max-width: 1200px; 
+            margin-top: 20px;
+            padding: 20px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            animation: fadeIn 0.5s;
+        }
+
+        .screen.active { display: block !important; }
+
+        /* 隐藏物品上的碳排量和游戏中的实时分数 */
+        .item-tag .item-carbon { display: none; }
+        #game-score-container { display: none; }
+
+        .input-group { text-align: center; margin: 50px 0; }
+        
+        input[type="text"] {
+            padding: 10px;
+            font-size: 1.2rem;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            width: 250px;
+            text-align: center;
+        }
+
+        .game-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .game-board {
+            display: flex;
+            gap: 20px;
+            height: 750px; 
+        }
+
+        .zone {
+            flex: 1;
+            border-radius: 12px;
+            padding: 15px;
+            display: flex;
+            flex-wrap: wrap;
+            align-content: flex-start;
+            gap: 10px;
+            overflow-y: auto;
+            border: 3px dashed transparent;
+            transition: background 0.3s;
+        }
+
+        #home-zone { background-color: var(--home-bg); border-color: #ffcccb; }
+        #discard-zone { background-color: var(--discard-bg); border-color: #90ee90; }
+
+        .zone-title {
+            width: 100%;
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-align: center;
+            font-size: 1.2rem;
+            pointer-events: none;
+        }
+
+        .item-tag {
+            padding: 10px 15px;
+            border-radius: 6px;
+            color: white;
+            font-weight: 500;
+            cursor: grab;
+            user-select: none;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            font-size: 0.9rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 5px;
+        }
+
+        .item-tag:active { cursor: grabbing; transform: scale(1.05); }
+        
+        /* 物品颜色 (7个类别) */
+        .type-clothing { background-color: #e67e22; }      /* 服饰：橙色 */
+        .type-electronics { background-color: #34495e; }   /* 电子：深蓝 */
+        .type-furniture { background-color: #9b59b6; }     /* 家具：紫色 */
+        .type-paper { background-color: #f1c40f; color: #333; } /* 纸张：黄色 */
+        .type-plastic { background-color: #e74c3c; }       /* 塑料：红色 */
+        .type-kitchen { background-color: #2ecc71; }       /* 厨具：绿色 */
+        .type-personal { background-color: #e74c9c; }      /* 护理：粉色 */
+
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 12px; text-align: center; border-bottom: 1px solid #ddd; }
+        th { background-color: #f8f9fa; }
+        .rank-1 { color: gold; font-weight: bold; }
+        .rank-2 { color: silver; font-weight: bold; }
+        .rank-3 { color: #cd7f32; font-weight: bold; }
+
+        .btn {
+            background-color: var(--primary-btn);
+            color: white;
+            border: none;
+            padding: 10px 25px;
+            font-size: 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        .btn:hover { background-color: #357abd; }
+        .btn-finish { background-color: #27ae60; }
+        
+        /* --- 新增：底部右侧浮动图标按钮样式 --- */
+        #btn-clear-history {
+            position: fixed;
+            bottom: 20px; 
+            right: 20px; 
+            z-index: 1000; 
+            font-size: 1.5rem; /* 增大图标 */
+            width: 50px; 
+            height: 50px; 
+            padding: 0;
+            border-radius: 50%; /* 圆形按钮 */
+            background-color: #ccc; /* 灰色背景，不抢眼 */
+            color: #333; /* 深色图标 */
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            opacity: 0.7; /* 略微透明，更加内敛 */
+            transition: opacity 0.3s, background-color 0.3s;
+            display: flex; /* 使图标居中 */
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+
+        #btn-clear-history:hover {
+            opacity: 1;
+            background-color: #e74c3c; /* 鼠标悬停时变红，给予明确反馈 */
+            color: white;
+        }
+
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="screen-input" class="screen active">
+        <h1>🏠 Minimalism: Green Life Challenge</h1>
+        <p style="text-align: center; color: #666;">Clear out unnecessary items to reduce your household's stored carbon footprint!</p>
+        <div class="input-group">
+            <input type="text" id="player-name" placeholder="Team Name / Nickname" maxlength="10">
+            <br><br>
+            <button id="btn-start" class="btn">Start Organizing!</button>
+        </div>
+    </div>
+
+    <div id="screen-game" class="screen">
+        <div class="game-header">
+            <div>
+                <strong>Current Player:</strong> <span id="display-name"></span>
+            </div>
+            <div id="game-score-container">
+                Total Household Carbon Emissions: <strong id="current-score" style="color: #e74c3c; font-size: 1.4rem;">0</strong> kgCO2e
+            </div>
+            <button id="btn-finish" class="btn btn-finish">Finish Decluttering</button>
+        </div>
+
+        <div class="game-board">
+            <div id="home-zone" class="zone">
+                <div class="zone-title">🏠 Keep it at Home (Retain)</div>
+                <div style="width: 100%; text-align: center; margin-bottom: 5px; font-size: 0.8rem; color: #777;">
+                    You must keep at least 3 items in the 'Keep it at Home' zone.
+                </div>
+            </div>
+
+            <div id="discard-zone" class="zone">
+                <div class="zone-title">♻️ Put it into the Recycling Process (Discard)</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="screen-result" class="screen">
+        <h1>Game Over!</h1>
+        <div style="text-align: center;">
+            <h2>Your Final Carbon Footprint Score: <span id="final-score" style="font-size: 2rem; color: #27ae60;"></span></h2>
+            <p>(The lower the score, the more eco-friendly your lifestyle.)</p>
+        </div>
+
+        <h3>🏆 Top Environmentalists Ranking</h3>
+        <table id="leaderboard-table">
+            <thead>
+                <tr>
+                    <th>Ranking</th>
+                    <th>Player Name</th>
+                    <th>Carbon Score</th>
+                </tr>
+            </thead>
+            <tbody>
+                </tbody>
+        </table>
+        
+        <h3 style="margin-top: 40px;">Understanding Your Score</h3>
+        <p style="text-align: center; margin-top: -10px;">The carbon cost of each item in the game:</p>
+        <table id="carbon-cost-table">
+            <thead>
+                <tr>
+                    <th>Item Name</th>
+                    <th>Carbon Cost (kgCO2e)</th>
+                </tr>
+            </thead>
+            <tbody>
+                </tbody>
+        </table>
+
+        <div style="text-align: center; margin-top: 30px;">
+            <button class="btn" onclick="location.reload()">Play Again!</button>
+        </div>
+    </div>
+
+    <button id="btn-clear-history" class="btn" title="Clear All History">🗑️</button>
+
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            
+            // -------------------------- 45 个客观物品数据 --------------------------
+            const itemsData = [
+                // Clothing & Textiles (服饰与纺织品) - 9 items
+                { id: 1, name: "Uniqlo Heattech Long Sleeve", type: "clothing", carbon: 8 },
+                { id: 2, name: "Fast Fashion Graphic T-shirt", type: "clothing", carbon: 5 },
+                { id: 3, name: "Oversize Cotton Sweatshirt", type: "clothing", carbon: 15 },
+                { id: 4, name: "ASICS Running Shoes (Old Model)", type: "clothing", carbon: 12 },
+                { id: 5, name: "Nike Air Jordan Sneakers", type: "clothing", carbon: 20 },
+                { id: 6, name: "Black Business Blazer", type: "clothing", carbon: 25 },
+                { id: 7, name: "Hiking Waterproof Jacket", type: "clothing", carbon: 30 },
+                { id: 8, name: "Unworn Designer Belt", type: "clothing", carbon: 10 },
+                { id: 9, name: "Pile of Single Socks", type: "clothing", carbon: 3 },
+
+                // Electronics & Gadgets (电子产品与配件) - 9 items
+                { id: 10, name: "iPhone 14 Pro Max", type: "electronics", carbon: 55 },
+                { id: 11, name: "iPhone 17 Pro Max", type: "electronics", carbon: 70 },
+                { id: 12, name: "DJI Action Camera (Latest)", type: "electronics", carbon: 15 },
+                { id: 13, name: "DJI Pocket 3 Gimbal Camera", type: "electronics", carbon: 10 },
+                { id: 14, name: "Fujifilm Mirrorless Camera", type: "electronics", carbon: 20 },
+                { id: 15, name: "Extra Gaming Mouse (Wired)", type: "electronics", carbon: 5 },
+                { id: 16, name: "Expired Laptop Charger", type: "electronics", carbon: 4 },
+                { id: 17, name: "Broken Smartwatch Strap", type: "electronics", carbon: 18 },
+                { id: 18, name: "Backup Portable SSD 1TB", type: "electronics", carbon: 8 },
+
+                // Furniture & Home Decor (家具与装饰) - 7 items
+                { id: 19, name: "Large Unassembled IKEA Bookshelf", type: "furniture", carbon: 30 },
+                { id: 20, name: "Old Student Desk", type: "furniture", carbon: 40 },
+                { id: 21, name: "Tall Floor Lamp", type: "furniture", carbon: 10 },
+                { id: 22, name: "Foldable Guest Mattress", type: "furniture", carbon: 60 },
+                { id: 23, name: "Box of String Lights", type: "furniture", carbon: 5 },
+                { id: 24, name: "Small Wooden Side Table", type: "furniture", carbon: 15 },
+                { id: 25, name: "Inflatable Air Sofa", type: "furniture", carbon: 25 },
+
+                // Kitchenware & Utensils (厨具与餐具) - 5 items
+                { id: 26, name: "Electric Bread Maker", type: "kitchen", carbon: 12 },
+                { id: 27, name: "Mismatched Ceramic Mugs", type: "kitchen", carbon: 3 },
+                { id: 28, name: "New Air Fryer", type: "kitchen", carbon: 15 },
+                { id: 29, name: "Cocktail Glass Set (6 pcs)", type: "kitchen", carbon: 8 },
+                { id: 30, name: "Excess Plastic Food Containers", type: "kitchen", carbon: 2 },
+
+                // Personal Care & Cosmetics (个人护理与化妆品) - 5 items
+                { id: 31, name: "Bulk-Purchased Toothbrush Set (6 pack)", type: "personal", carbon: 1 },
+                { id: 32, name: "Unwanted Scented Shampoo Bottle", type: "personal", carbon: 3 },
+                { id: 33, name: "Expired Makeup Pallette", type: "personal", carbon: 2 },
+                { id: 34, name: "Electric Face Cleansing Brush", type: "personal", carbon: 5 },
+                { id: 35, name: "Hotel Miniature Toiletries Box", type: "personal", carbon: 1 },
+
+                // Paper & Media (纸张与媒体) - 5 items
+                { id: 36, name: "Old University Textbooks", type: "paper", carbon: 10 },
+                { id: 37, name: "Stack of Two Years of Utility Bills", type: "paper", carbon: 1 },
+                { id: 38, name: "Half-Used Moleskin Journal", type: "paper", carbon: 2 },
+                { id: 39, name: "Collection of Old DVDs/Blu-Rays", type: "paper", carbon: 5 },
+                { id: 40, name: "Unopened Magazine Subscription Pile", type: "paper", carbon: 3 },
+
+                // Plastics & Packaging (塑料与包装) - 5 items
+                { id: 41, name: "Disposable Water Bottles (10 pack)", type: "plastic", carbon: 3 },
+                { id: 42, name: "Random Shipping Bubble Wrap", type: "plastic", carbon: 1 },
+                { id: 43, name: "Broken Plastic Clothes Hangers (4 pcs)", type: "plastic", carbon: 2 },
+                { id: 44, name: "Unrecyclable Takeout Containers", type: "plastic", carbon: 4 },
+                { id: 45, name: "Expired Loyalty/Credit Cards", type: "plastic", carbon: 1 }
+            ];
+            // ----------------------------------------------------------------------------------
+
+            const MIN_ITEMS_TO_KEEP = 3; 
+
+            let currentPlayer = "";
+            let currentHomeItems = [];
+
+            // --- 绑定按钮事件 ---
+            document.getElementById('btn-start').addEventListener('click', startGame);
+            document.getElementById('btn-finish').addEventListener('click', finishGame);
+            document.getElementById('btn-clear-history').addEventListener('click', clearHistory);
+            
+            // --- 绑定拖拽事件 (Zone) ---
+            const zones = document.querySelectorAll('.zone');
+            zones.forEach(zone => {
+                zone.addEventListener('dragover', allowDrop);
+                zone.addEventListener('drop', drop);
+            });
+
+            // --- 游戏逻辑 ---
+
+            function startGame() {
+                const nameInput = document.getElementById('player-name').value.trim();
+                
+                if (!nameInput) {
+                    alert("Please enter a name first!");
+                    return;
+                }
+                
+                currentPlayer = nameInput;
+                document.getElementById('display-name').innerText = currentPlayer;
+                
+                switchScreen('screen-game');
+                initGameItems();
+            }
+
+            function initGameItems() {
+                const homeZone = document.getElementById('home-zone');
+                
+                // 重置 Home Zone 的内容，并保留 zone-title 和提示文字
+                homeZone.innerHTML = `
+                    <div class="zone-title">🏠 Keep it at Home (Retain)</div>
+                    <div style="width: 100%; text-align: center; margin-bottom: 5px; font-size: 0.8rem; color: #777;">
+                        You must keep at least ${MIN_ITEMS_TO_KEEP} items in the 'Keep it at Home' zone.
+                    </div>
+                `;
+                document.getElementById('discard-zone').innerHTML = '<div class="zone-title">♻️ Put it into the Recycling Process (Discard)</div>';
+
+                currentHomeItems = [];
+
+                itemsData.forEach(item => {
+                    const el = document.createElement('div');
+                    el.classList.add('item-tag', `type-${item.type}`); 
+                    el.draggable = true;
+                    el.id = `item-${item.id}`;
+                    el.innerHTML = `<span>${item.name}</span><span class="item-carbon">${item.carbon} C</span>`;
+                    
+                    el.addEventListener('dragstart', drag);
+                    
+                    homeZone.appendChild(el);
+                    currentHomeItems.push(item.id);
+                });
+                updateScoreDisplay();
+            }
+
+            // --- 拖拽功能实现 ---
+            function allowDrop(ev) { ev.preventDefault(); }
+            function drag(ev) { ev.dataTransfer.setData("text", ev.target.id); }
+
+            function drop(ev) {
+                ev.preventDefault();
+                const data = ev.dataTransfer.getData("text");
+                const itemElement = document.getElementById(data);
+                
+                let targetZone = ev.target;
+                if (!targetZone.classList.contains('zone')) {
+                    targetZone = targetZone.closest('.zone');
+                }
+
+                if (targetZone && itemElement) {
+                    targetZone.appendChild(itemElement);
+                    updateGameState();
+                }
+            }
+
+            // --- 计分系统 ---
+            function updateGameState() {
+                const homeZone = document.getElementById('home-zone');
+                // 排除 zone-title 和提示文字
+                const itemsInHome = homeZone.querySelectorAll('.item-tag');
+                
+                currentHomeItems = [];
+                itemsInHome.forEach(el => {
+                    const id = parseInt(el.id.split('-')[1]);
+                    currentHomeItems.push(id);
+                });
+                updateScoreDisplay();
+            }
+
+            function calculateCurrentScore() {
+                let totalCarbon = 0;
+                currentHomeItems.forEach(id => {
+                    const item = itemsData.find(i => i.id === id);
+                    if (item) totalCarbon += item.carbon;
+                });
+                return totalCarbon;
+            }
+
+            function updateScoreDisplay() {
+                const score = calculateCurrentScore();
+                document.getElementById('current-score').innerText = score;
+            }
+
+            function finishGame() {
+                // 检查最低保留物品数量
+                if (currentHomeItems.length < MIN_ITEMS_TO_KEEP) {
+                    alert(`结算失败：您至少需要保留 ${MIN_ITEMS_TO_KEEP} 件物品在“Keep it at Home”区域。`);
+                    return; // 阻止游戏结算
+                }
+
+                const finalScore = calculateCurrentScore();
+                document.getElementById('final-score').innerText = finalScore;
+                saveScore(currentPlayer, finalScore);
+                renderLeaderboard();
+                
+                renderCarbonCostTable(); 
+                
+                switchScreen('screen-result');
+            }
+
+            // --- 清除历史记录 ---
+            function clearHistory() {
+                if (confirm("您确定要清除所有历史排行榜数据吗？此操作不可撤销。")) {
+                    localStorage.removeItem('ecoGameLeaderboard');
+                    location.reload(); // 刷新页面以更新排行榜显示
+                }
+            }
+
+            // --- 渲染物品碳排量对照表 ---
+            function renderCarbonCostTable() {
+                const tbody = document.querySelector('#carbon-cost-table tbody');
+                tbody.innerHTML = ''; 
+
+                itemsData.forEach(item => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${item.name}</td>
+                        <td>${item.carbon}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+
+
+            // --- 排行榜 & 界面切换 ---
+            function saveScore(name, score) {
+                let leaderboard = [];
+                try {
+                    leaderboard = JSON.parse(localStorage.getItem('ecoGameLeaderboard')) || [];
+                } catch(e) { leaderboard = []; }
+                leaderboard.push({ name: name, score: score, date: new Date().toISOString() });
+                localStorage.setItem('ecoGameLeaderboard', JSON.stringify(leaderboard));
+            }
+
+            function renderLeaderboard() {
+                let leaderboard = [];
+                try {
+                    leaderboard = JSON.parse(localStorage.getItem('ecoGameLeaderboard')) || [];
+                } catch(e) {}
+                
+                leaderboard.sort((a, b) => a.score - b.score);
+
+                const tbody = document.querySelector('#leaderboard-table tbody');
+                tbody.innerHTML = '';
+
+                leaderboard.forEach((entry, index) => {
+                    const tr = document.createElement('tr');
+                    let rankClass = '';
+                    if(index === 0) rankClass = 'rank-1';
+                    if(index === 1) rankClass = 'rank-2';
+                    if(index === 2) rankClass = 'rank-3';
+
+                    tr.innerHTML = `
+                        <td class="${rankClass}">${index + 1}</td>
+                        <td>${entry.name}</td>
+                        <td>${entry.score}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+
+            function switchScreen(screenId) {
+                document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+                const target = document.getElementById(screenId);
+                if(target) target.classList.add('active');
+            }
+        });
+    </script>
+</body>
+</html>
